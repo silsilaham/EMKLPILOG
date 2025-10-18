@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi EMKL PILOG</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .sidebar-item {
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar-item:hover {
+            background-color: #3b82f6; /* Lighter blue on hover */
+            color: white;
+        }
+        .sidebar-item.active {
+            background-color: #1d4ed8; /* Darker blue for active */
+            color: white;
+            font-weight: 600;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col shadow-lg">
+            <div class="p-5 border-b border-slate-700 flex items-center justify-center gap-3">
+                <i class="fas fa-ship text-3xl text-sky-400"></i>
+                <h1 class="text-2xl font-bold text-white text-center">EMKL Pro</h1>
+            </div>
+            <nav class="flex-1 p-3 space-y-2">
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="dashboard"><i class="fas fa-tachometer-alt w-7"></i><span>Dashboard</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="job-order-list"><i class="fas fa-list-alt w-7"></i><span>Daftar Job Order</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="add-job-order"><i class="fas fa-plus-circle w-7"></i><span>Input Job Order Baru</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="piutang-list"><i class="fas fa-file-invoice-dollar w-7"></i><span>Daftar Piutang</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="operational-costs"><i class="fas fa-money-bill-wave w-7"></i><span>Biaya Operasional</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="laporan-sopir"><i class="fas fa-id-card w-7"></i><span>Laporan Sopir</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="laporan"><i class="fas fa-chart-pie w-7"></i><span>Laporan Laba/Rugi</span></a>
+                <div class="pt-2 mt-2 border-t border-slate-700"></div>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="pengaturan"><i class="fas fa-cog w-7"></i><span>Pengaturan</span></a>
+                <a href="#" class="sidebar-item flex items-center p-3 rounded-lg" data-page="backup-restore"><i class="fas fa-database w-7"></i><span>Backup & Restore</span></a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+            <!-- PAGE: Dashboard -->
+            <div id="dashboard" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md transition-transform hover:scale-105"><h3 class="text-lg font-semibold text-slate-600">Total Job Order</h3><p id="total-jobs" class="text-4xl font-bold mt-2 text-sky-600">0</p></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md transition-transform hover:scale-105"><h3 class="text-lg font-semibold text-slate-600">Total Pendapatan</h3><p id="total-revenue" class="text-4xl font-bold mt-2 text-green-600">Rp 0</p></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md transition-transform hover:scale-105"><h3 class="text-lg font-semibold text-slate-600">Total Biaya</h3><p id="total-cost" class="text-4xl font-bold mt-2 text-red-600">Rp 0</p></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md transition-transform hover:scale-105"><h3 class="text-lg font-semibold text-slate-600">Laba Bersih</h3><p id="net-profit" class="text-4xl font-bold mt-2 text-blue-800">Rp 0</p></div>
+                </div>
+                 <div class="mt-8 bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-slate-700">Job Order Terbaru</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50"><tr class="border-b"><th class="p-4 font-semibold text-slate-600">No. Job</th><th class="p-4 font-semibold text-slate-600">Pelanggan</th><th class="p-4 font-semibold text-slate-600">Tanggal</th><th class="p-4 font-semibold text-slate-600">Status</th></tr></thead>
+                            <tbody id="recent-jobs-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: Daftar Job Order -->
+            <div id="job-order-list" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Daftar Job Order</h2>
+                 <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50"><tr class="border-b"><th class="p-4 font-semibold text-slate-600">No. Job Order</th><th class="p-4 font-semibold text-slate-600">Pelanggan</th><th class="p-4 font-semibold text-slate-600">Tanggal Dibuat</th><th class="p-4 font-semibold text-slate-600">Total Invoice</th><th class="p-4 font-semibold text-slate-600">Status Pembayaran</th><th class="p-4 font-semibold text-slate-600 text-center">Aksi</th></tr></thead>
+                            <tbody id="job-order-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: Input Job Order -->
+            <div id="add-job-order" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Input Job Order Baru</h2>
+                <form id="job-order-form" class="bg-white p-8 rounded-xl shadow-md space-y-8">
+                    <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Informasi Umum</legend><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"><div><label for="job-order-no" class="block font-medium mb-1 text-slate-600">No. Job Order</label><input type="text" id="job-order-no" class="w-full p-2 border rounded-md bg-slate-200" readonly></div><div><label for="customer-name" class="block font-medium mb-1 text-slate-600">Nama Pelanggan</label><input type="text" id="customer-name" class="w-full p-2 border rounded-md" required></div><div><label for="shipment-type" class="block font-medium mb-1 text-slate-600">Partai</label><input type="text" id="shipment-type" class="w-full p-2 border rounded-md" placeholder="Contoh: FCL/LCL"></div><div><label for="vessel-voyage" class="block font-medium mb-1 text-slate-600">Kapal / Voyage</label><input type="text" id="vessel-voyage" class="w-full p-2 border rounded-md"></div><div><label for="pol" class="block font-medium mb-1 text-slate-600">Port of Loading (POL)</label><input type="text" id="pol" class="w-full p-2 border rounded-md"></div><div><label for="pod" class="block font-medium mb-1 text-slate-600">Port of Discharge (POD)</label><input type="text" id="pod" class="w-full p-2 border rounded-md"></div><div class="md:col-span-2"><label for="bank-selection" class="block font-medium mb-1 text-slate-600">Rekening Bank untuk Invoice</label><select id="bank-selection" class="w-full p-2 border rounded-md bg-white"></select></div></div></fieldset>
+                    <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Detail Kontainer & Sopir</legend><div id="container-details-wrapper" class="space-y-4 mt-4"></div><button type="button" id="add-container-btn" class="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600"><i class="fas fa-plus mr-2"></i>Tambah Kontainer</button></fieldset>
+                    <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Rincian Invoice</legend><div id="invoice-items-wrapper" class="space-y-4 mt-4"></div><button type="button" id="add-invoice-item-btn" class="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600"><i class="fas fa-plus mr-2"></i>Tambah Item Invoice</button><div class="text-right mt-6 space-y-2 border-t pt-4"> <div class="text-lg font-semibold text-slate-600">Subtotal: <span id="invoice-subtotal" class="w-40 inline-block">Rp 0</span></div><div class="text-lg font-semibold text-slate-600">PPN 11%: <span id="invoice-ppn" class="w-40 inline-block">Rp 0</span></div><div class="text-2xl font-bold text-slate-800 mt-2">Grand Total: <span id="invoice-grand-total" class="w-40 inline-block">Rp 0</span></div></div></fieldset>
+                    <div class="text-right pt-4"><button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 text-lg shadow-md">Simpan Job Order</button></div>
+                </form>
+            </div>
+
+            <!-- PAGE: Daftar Piutang -->
+            <div id="piutang-list" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Daftar Piutang</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex flex-wrap gap-4 items-end mb-6 pb-6 border-b"><h3 class="text-xl font-semibold text-slate-700 w-full mb-2">Filter Laporan</h3><div><label for="piutang-month" class="block font-medium mb-1 text-slate-600">Bulan</label><select id="piutang-month" class="p-2 border rounded-md bg-white"></select></div><div><label for="piutang-year" class="block font-medium mb-1 text-slate-600">Tahun</label><select id="piutang-year" class="p-2 border rounded-md bg-white"></select></div><button id="generate-piutang-report-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-filter mr-2"></i>Tampilkan</button><button id="print-piutang-report-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 hidden"><i class="fas fa-print mr-2"></i>Cetak PDF</button></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left"><thead class="bg-slate-50"><tr class="border-b"><th class="p-4 font-semibold text-slate-600">No. Job Order</th><th class="p-4 font-semibold text-slate-600">Pelanggan</th><th class="p-4 font-semibold text-slate-600">Tanggal Invoice</th><th class="p-4 font-semibold text-slate-600">Total Tagihan</th><th class="p-4 font-semibold text-slate-600">Status</th></tr></thead><tbody id="piutang-table-body"></tbody><tfoot class="font-bold bg-slate-200"><tr><td class="p-4 text-slate-800" colspan="3">TOTAL PIUTANG</td><td id="piutang-total" class="p-4 text-slate-800" colspan="2"></td></tr></tfoot></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: Biaya Operasional -->
+            <div id="operational-costs" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Manajemen Biaya Operasional</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="mb-6"><label for="cost-job-select" class="block font-medium mb-2 text-slate-600">Pilih Job Order:</label><select id="cost-job-select" class="w-full md:w-1/2 p-2 border rounded-md bg-white"><option value="">-- Pilih Job Order --</option></select></div>
+                    <div id="costs-display-section" class="hidden mt-6">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Rincian Biaya untuk <span id="selected-job-id" class="text-blue-600"></span></h3>
+                        <div class="overflow-x-auto mb-6"><table class="w-full text-left"><thead class="bg-slate-50"><tr class="border-b"><th class="p-4 font-semibold text-slate-600">Deskripsi</th><th class="p-4 font-semibold text-slate-600 text-right">Jumlah</th><th class="p-4 font-semibold text-slate-600 text-center">Aksi</th></tr></thead><tbody id="costs-table-body"></tbody></table></div>
+                        <div><h4 class="text-lg font-semibold mb-2 text-slate-700">Tambah Biaya Baru</h4><form id="page-add-cost-form" class="flex flex-col md:flex-row gap-2"><input type="text" id="page-cost-desc" placeholder="Deskripsi Biaya" class="flex-grow p-2 border rounded-md" required><input type="number" id="page-cost-amount" placeholder="Jumlah" class="w-full md:w-48 p-2 border rounded-md" required min="0"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Tambah</button></form></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: Laporan Sopir -->
+            <div id="laporan-sopir" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Laporan Aktivitas Sopir</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex flex-wrap gap-4 items-end mb-6 pb-6 border-b"><h3 class="text-xl font-semibold text-slate-700 w-full mb-2">Filter Laporan</h3><div><label for="report-month" class="block font-medium mb-1 text-slate-600">Bulan</label><select id="report-month" class="p-2 border rounded-md bg-white"></select></div><div><label for="report-year" class="block font-medium mb-1 text-slate-600">Tahun</label><select id="report-year" class="p-2 border rounded-md bg-white"></select></div><button id="generate-driver-report-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-filter mr-2"></i>Tampilkan</button><button id="print-driver-report-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 hidden"><i class="fas fa-print mr-2"></i>Cetak PDF</button></div>
+                    <div id="driver-report-content" class="space-y-6"></div>
+                </div>
+            </div>
+
+            <!-- PAGE: Laporan -->
+            <div id="laporan" class="page">
+                 <h2 class="text-3xl font-bold mb-6 text-slate-800">Laporan Laba/Rugi</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="flex flex-wrap gap-4 items-end mb-6 pb-6 border-b"><h3 class="text-xl font-semibold text-slate-700 w-full mb-2">Filter Laporan</h3><div><label for="profit-loss-month" class="block font-medium mb-1 text-slate-600">Bulan</label><select id="profit-loss-month" class="p-2 border rounded-md bg-white"></select></div><div><label for="profit-loss-year" class="block font-medium mb-1 text-slate-600">Tahun</label><select id="profit-loss-year" class="p-2 border rounded-md bg-white"></select></div><button id="generate-profit-loss-report-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-filter mr-2"></i>Tampilkan</button><button id="print-profit-loss-report-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 hidden"><i class="fas fa-print mr-2"></i>Cetak PDF</button></div>
+                    <div id="report-ppn-section" class="mb-8"><h3 class="text-xl font-semibold mb-3 text-slate-700">Laporan Laba/Rugi (Dengan PPN)</h3><div class="overflow-x-auto"><table id="report-table-ppn" class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-4 font-semibold text-slate-600">No. Job Order</th><th class="p-4 font-semibold text-slate-600">Pelanggan</th><th class="p-4 font-semibold text-slate-600">Pendapatan</th><th class="p-4 font-semibold text-slate-600">Biaya</th><th class="p-4 font-semibold text-slate-600">Laba/Rugi</th></tr></thead><tbody id="report-table-body-ppn"></tbody><tfoot class="font-bold bg-slate-200"><tr><td class="p-4 text-slate-800" colspan="2">TOTAL</td><td id="report-total-revenue-ppn" class="p-4 text-slate-800"></td><td id="report-total-cost-ppn" class="p-4 text-slate-800"></td><td id="report-total-profit-ppn" class="p-4 text-slate-800"></td></tr></tfoot></table></div></div>
+                    <div id="report-np-section"><h3 class="text-xl font-semibold mb-3 text-slate-700">Laporan Laba/Rugi (Bebas PPN)</h3><div class="overflow-x-auto"><table id="report-table-np" class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-4 font-semibold text-slate-600">No. Job Order</th><th class="p-4 font-semibold text-slate-600">Pelanggan</th><th class="p-4 font-semibold text-slate-600">Pendapatan</th><th class="p-4 font-semibold text-slate-600">Biaya</th><th class="p-4 font-semibold text-slate-600">Laba/Rugi</th></tr></thead><tbody id="report-table-body-np"></tbody><tfoot class="font-bold bg-slate-200"><tr><td class="p-4 text-slate-800" colspan="2">TOTAL</td><td id="report-total-revenue-np" class="p-4 text-slate-800"></td><td id="report-total-cost-np" class="p-4 text-slate-800"></td><td id="report-total-profit-np" class="p-4 text-slate-800"></td></tr></tfoot></table></div></div>
+                </div>
+            </div>
+            
+            <!-- PAGE: Pengaturan -->
+            <div id="pengaturan" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Pengaturan</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-slate-700 border-b pb-3">Referensi Bank untuk Invoice</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="text-lg font-semibold mb-3 text-slate-600">Tambah Rekening Bank Baru</h4>
+                            <form id="bank-form" class="space-y-4">
+                                <div><label for="bank-name" class="block font-medium mb-1 text-slate-600">Nama Bank</label><input type="text" id="bank-name" class="w-full p-2 border rounded-md" required></div>
+                                <div><label for="account-number" class="block font-medium mb-1 text-slate-600">Nomor Rekening</label><input type="text" id="account-number" class="w-full p-2 border rounded-md" required></div>
+                                <div><label for="account-holder" class="block font-medium mb-1 text-slate-600">Atas Nama</label><input type="text" id="account-holder" class="w-full p-2 border rounded-md" required></div>
+                                <div class="text-right"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Tambah Bank</button></div>
+                            </form>
+                        </div>
+                        <div>
+                             <h4 class="text-lg font-semibold mb-3 text-slate-600">Daftar Rekening Tersimpan</h4>
+                             <div id="bank-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                <!-- Bank list will be populated by JS -->
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- PAGE: Backup & Restore -->
+            <div id="backup-restore" class="page">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Backup & Restore Data</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md mb-6"><h3 class="text-xl font-semibold mb-4 text-slate-700">Backup Data</h3><p class="text-slate-600 mb-4">Simpan semua data Anda ke dalam sebuah file JSON. Simpan file ini di tempat yang aman sebagai cadangan.</p><button id="backup-btn" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"><i class="fas fa-download mr-2"></i>Download Backup</button></div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-500"><h3 class="text-xl font-semibold mb-4 text-red-700">Restore Data</h3><p class="text-slate-600 mb-4"><strong>Peringatan:</strong> Memulihkan data dari file akan <strong class="text-red-600">MENGGANTI SEMUA DATA</strong> yang ada saat ini. Pastikan Anda telah mem-backup data terbaru jika diperlukan.</p><div class="flex items-center gap-4"><input type="file" id="restore-file-input" accept=".json" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/><button id="restore-btn" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 whitespace-nowrap"><i class="fas fa-upload mr-2"></i>Restore Data</button></div></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4"><div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"><div class="flex justify-between items-center p-4 border-b"><h3 class="text-2xl font-bold text-slate-800" id="modal-title">Detail</h3><button id="close-modal-btn" class="text-slate-500 hover:text-slate-800 text-3xl">&times;</button></div><div id="modal-content" class="p-6 overflow-y-auto"></div></div></div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-500 text-white py-3 px-5 rounded-lg shadow-lg hidden transform translate-y-20 transition-transform duration-300"><p id="toast-message"></p></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // STATE MANAGEMENT
+    let state = {
+        jobs: [],
+        banks: [],
+        activePage: 'dashboard',
+        editingJobId: null
+    };
+
+    // SELECTORS
+    const pages = document.querySelectorAll('.page');
+    const navLinks = document.querySelectorAll('.sidebar-item');
+    const jobOrderTableBody = document.getElementById('job-order-table-body');
+    const jobOrderForm = document.getElementById('job-order-form');
+    const jobOrderNoInput = document.getElementById('job-order-no');
+    
+    const detailsModal = document.getElementById('details-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const modalContent = document.getElementById('modal-content');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    // UTILITY FUNCTIONS
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    };
+
+    const getPPNStatusText = (status) => {
+        switch (status) {
+            case 'kena_ppn': return 'Kena PPN';
+            case 'bebas_ppn': return 'Bebas PPN';
+            case 'ppn_dibebaskan': return 'PPN Dibebaskan';
+            default: return '';
+        }
+    };
+
+    const showToast = (message) => {
+        toastMessage.textContent = message;
+        toast.classList.remove('hidden');
+        toast.classList.remove('translate-y-20');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20');
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 3000);
+    };
+
+    const saveData = () => {
+        localStorage.setItem('emklAppData', JSON.stringify(state));
+    };
+
+    const loadData = () => {
+        const data = localStorage.getItem('emklAppData');
+        if (data) {
+             const loadedState = JSON.parse(data);
+             state.jobs = loadedState.jobs || [];
+             state.banks = loadedState.banks || [];
+        }
+    };
+
+    const generateJobOrderID = (type) => {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        const prefix = type === 'ppn' ? 'JO-PPN-' : 'JO-NP-';
+        const relevantJobs = state.jobs.filter(job => job.id.startsWith(prefix));
+        
+        const lastJobId = relevantJobs.length > 0 
+            ? Math.max(...relevantJobs.map(job => parseInt(job.id.split('-').pop()) || 0))
+            : 0;
+            
+        const newId = String(lastJobId + 1).padStart(3, '0');
+        return `${prefix}${year}${month}${day}-${newId}`;
+    };
+
+    const populateDateFilters = (monthSelectId, yearSelectId) => {
+        const monthSelect = document.getElementById(monthSelectId);
+        const yearSelect = document.getElementById(yearSelectId);
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+
+        if (monthSelect.options.length === 0) {
+            const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            months.forEach((month, index) => {
+                const option = new Option(month, index);
+                monthSelect.add(option);
+            });
+        }
+        monthSelect.value = currentMonth;
+        
+        if (yearSelect.options.length === 0) {
+            for (let i = currentYear; i >= currentYear - 5; i--) {
+                const option = new Option(i, i);
+                yearSelect.add(option);
+            }
+        }
+        yearSelect.value = currentYear;
+    };
+
+    // RENDER FUNCTIONS
+    const render = () => {
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById(state.activePage).classList.add('active');
+
+        navLinks.forEach(l => l.classList.remove('active'));
+        document.querySelector(`.sidebar-item[data-page="${state.activePage}"]`).classList.add('active');
+
+        switch (state.activePage) {
+            case 'dashboard': renderDashboard(); break;
+            case 'job-order-list': renderJobOrderList(); break;
+            case 'add-job-order': 
+                populateBankSelection();
+                if (!state.editingJobId) { 
+                    resetJobOrderForm(); 
+                } 
+                break;
+            case 'piutang-list': renderPiutangListPage(); break;
+            case 'operational-costs': renderOperationalCostsPage(); break;
+            case 'laporan-sopir': renderSopirReportPage(); break;
+            case 'laporan': renderReportPage(); break;
+            case 'pengaturan': renderPengaturanPage(); break;
+        }
+    };
+    
+    const renderDashboard = () => {
+        const totalJobs = state.jobs.length;
+        const totalRevenue = state.jobs.reduce((sum, job) => sum + job.invoice.total, 0);
+        const totalCost = state.jobs.reduce((sum, job) => sum + job.operationalCosts.reduce((s, c) => s + c.amount, 0), 0);
+        const netProfit = totalRevenue - totalCost;
+
+        document.getElementById('total-jobs').textContent = totalJobs;
+        document.getElementById('total-revenue').textContent = formatCurrency(totalRevenue);
+        document.getElementById('total-cost').textContent = formatCurrency(totalCost);
+        document.getElementById('net-profit').textContent = formatCurrency(netProfit);
+
+        const recentJobsTable = document.getElementById('recent-jobs-table');
+        recentJobsTable.innerHTML = '';
+        const recentJobs = state.jobs.slice(-5).reverse();
+        if (recentJobs.length === 0) {
+            recentJobsTable.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-500">Belum ada data job order.</td></tr>`;
+        } else {
+            recentJobs.forEach(job => {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `
+                    <td class="p-4">${job.id}</td>
+                    <td class="p-4">${job.customerName}</td>
+                    <td class="p-4">${new Date(job.createdAt).toLocaleDateString('id-ID')}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${job.invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${job.invoice.status === 'paid' ? 'Lunas' : 'Belum Lunas'}
+                        </span>
+                    </td>
+                `;
+                recentJobsTable.appendChild(row);
+            });
+        }
+    };
+
+    const renderJobOrderList = () => {
+        jobOrderTableBody.innerHTML = '';
+        if (state.jobs.length === 0) {
+            jobOrderTableBody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-slate-500">Belum ada data job order. Silakan buat baru.</td></tr>`;
+            return;
+        }
+        state.jobs.forEach(job => {
+            const row = document.createElement('tr');
+            row.className = 'border-b hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="p-4">${job.id}</td>
+                <td class="p-4">${job.customerName}</td>
+                <td class="p-4">${new Date(job.createdAt).toLocaleDateString('id-ID')}</td>
+                <td class="p-4">${formatCurrency(job.invoice.total)}</td>
+                <td class="p-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold ${job.invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                        ${job.invoice.status === 'paid' ? 'Lunas' : 'Belum Lunas'}
+                    </span>
+                </td>
+                <td class="p-4 space-x-4 text-center">
+                    <button class="text-sky-600 hover:text-sky-800 view-details-btn" data-id="${job.id}" title="Lihat Detail"><i class="fas fa-eye"></i></button>
+                    <button class="text-orange-500 hover:text-orange-700 edit-job-btn" data-id="${job.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="text-red-500 hover:text-red-700 delete-job-btn" data-id="${job.id}" title="Hapus"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            jobOrderTableBody.appendChild(row);
+        });
+    };
+    
+    const renderPiutangListPage = () => {
+        populateDateFilters('piutang-month', 'piutang-year');
+        document.getElementById('piutang-table-body').innerHTML = '<tr><td colspan="5" class="text-center p-4 text-slate-500">Pilih periode untuk menampilkan laporan piutang.</td></tr>';
+        document.getElementById('piutang-total').textContent = formatCurrency(0);
+        document.getElementById('print-piutang-report-btn').classList.add('hidden');
+    };
+
+    const renderReportPage = () => {
+        populateDateFilters('profit-loss-month', 'profit-loss-year');
+        const initialMsg = '<tr><td colspan="5" class="text-center p-4 text-slate-500">Pilih periode untuk menampilkan laporan.</td></tr>';
+        document.getElementById('report-table-body-ppn').innerHTML = initialMsg;
+        document.getElementById('report-table-body-np').innerHTML = initialMsg;
+        
+        document.getElementById('report-total-revenue-ppn').textContent = formatCurrency(0);
+        document.getElementById('report-total-cost-ppn').textContent = formatCurrency(0);
+        document.getElementById('report-total-profit-ppn').textContent = formatCurrency(0);
+
+        document.getElementById('report-total-revenue-np').textContent = formatCurrency(0);
+        document.getElementById('report-total-cost-np').textContent = formatCurrency(0);
+        document.getElementById('report-total-profit-np').textContent = formatCurrency(0);
+
+        document.getElementById('print-profit-loss-report-btn').classList.add('hidden');
+    };
+    
+    const renderOperationalCostsPage = () => {
+        const select = document.getElementById('cost-job-select');
+        const displaySection = document.getElementById('costs-display-section');
+        select.innerHTML = '<option value="">-- Pilih Job Order --</option>';
+
+        state.jobs.forEach(job => {
+            const option = new Option(`${job.id} - ${job.customerName}`, job.id);
+            select.add(option);
+        });
+
+        select.value = '';
+        displaySection.classList.add('hidden');
+    };
+
+    const renderSopirReportPage = () => {
+        populateDateFilters('report-month', 'report-year');
+        document.getElementById('driver-report-content').innerHTML = '<p class="text-slate-500">Pilih bulan dan tahun, lalu klik "Tampilkan Laporan".</p>';
+        document.getElementById('print-driver-report-btn').classList.add('hidden');
+    };
+    
+    const renderPengaturanPage = () => {
+        const bankList = document.getElementById('bank-list');
+        bankList.innerHTML = '';
+        if (state.banks.length === 0) {
+            bankList.innerHTML = '<p class="text-slate-500 text-center">Belum ada data bank.</p>';
+            return;
+        }
+        state.banks.forEach((bank, index) => {
+            const div = document.createElement('div');
+            div.className = 'bg-slate-50 p-3 rounded-lg flex justify-between items-center';
+            div.innerHTML = `
+                <div>
+                    <p class="font-semibold text-slate-700">${bank.name}</p>
+                    <p class="text-sm text-slate-600">${bank.number} (a.n. ${bank.holder})</p>
+                </div>
+                <button class="text-red-500 hover:text-red-700 delete-bank-btn" data-index="${index}" title="Hapus Bank"><i class="fas fa-trash"></i></button>
+            `;
+            bankList.appendChild(div);
+        });
+    };
+
+    // DYNAMIC FORM FUNCTIONS
+    const createContainerRow = () => {
+        const div = document.createElement('div');
+        div.className = 'grid grid-cols-1 md:grid-cols-[1fr,1fr,1fr,1fr,auto] gap-4 items-center';
+        div.innerHTML = `
+            <input type="text" class="p-2 border rounded-md container-number" placeholder="Nomor Kontainer" required>
+            <input type="text" class="p-2 border rounded-md container-seal" placeholder="Nomor Seal">
+            <input type="text" class="p-2 border rounded-md container-type" placeholder="Jenis & Ukuran">
+            <input type="text" class="p-2 border rounded-md container-driver" placeholder="Nama Sopir">
+            <button type="button" class="bg-red-500 text-white h-10 w-10 rounded-md remove-btn flex-shrink-0 hover:bg-red-600"><i class="fas fa-trash"></i></button>
+        `;
+        div.querySelector('.remove-btn').addEventListener('click', () => div.remove());
+        return div;
+    };
+
+    const createInvoiceItemRow = () => {
+        const div = document.createElement('div');
+        div.className = 'grid grid-cols-1 md:grid-cols-[2fr,1fr,1fr,1.5fr] gap-4 items-center';
+        div.innerHTML = `
+            <input type="text" class="p-2 border rounded-md invoice-desc" placeholder="Deskripsi Biaya" required>
+            <select class="p-2 border rounded-md invoice-ppn-status bg-white">
+                <option value="kena_ppn" selected>Kena PPN</option>
+                <option value="bebas_ppn">Bebas PPN</option>
+                <option value="ppn_dibebaskan">PPN Dibebaskan</option>
+            </select>
+            <input type="number" class="p-2 border rounded-md invoice-qty" placeholder="Qty" value="1" min="1" required>
+            <div class="flex items-center space-x-2">
+                <input type="number" class="w-full p-2 border rounded-md invoice-price" placeholder="Harga Satuan" min="0" required>
+                <button type="button" class="bg-red-500 text-white h-10 w-10 rounded-md remove-btn flex-shrink-0 hover:bg-red-600"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        div.querySelector('.remove-btn').addEventListener('click', () => {
+            div.remove();
+            calculateInvoiceTotal();
+        });
+        div.querySelectorAll('.invoice-qty, .invoice-price, .invoice-ppn-status').forEach(input => {
+            input.addEventListener('input', calculateInvoiceTotal);
+            input.addEventListener('change', calculateInvoiceTotal);
+        });
+        return div;
+    };
+    
+    const calculateInvoiceTotal = () => {
+        let dpp = 0;
+        let subtotal = 0;
+        document.querySelectorAll('#invoice-items-wrapper > div').forEach(row => {
+            const qty = parseFloat(row.querySelector('.invoice-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.invoice-price').value) || 0;
+            const ppnStatus = row.querySelector('.invoice-ppn-status').value;
+            const itemTotal = qty * price;
+
+            subtotal += itemTotal;
+            if (ppnStatus === 'kena_ppn') {
+                dpp += itemTotal;
+            }
+        });
+
+        const ppn = Math.floor(dpp * 0.11);
+        const grandTotal = subtotal + ppn;
+
+        document.getElementById('invoice-subtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('invoice-ppn').textContent = formatCurrency(ppn);
+        document.getElementById('invoice-grand-total').textContent = formatCurrency(grandTotal);
+    };
+
+    const populateBankSelection = () => {
+        const select = document.getElementById('bank-selection');
+        select.innerHTML = '<option value="all">Tampilkan Semua Bank</option>';
+        state.banks.forEach((bank, index) => {
+            const option = new Option(`${bank.name} - ${bank.number}`, index);
+            select.add(option);
+        });
+    };
+
+    // FORM SUBMISSION, RESET, EDIT
+    const resetJobOrderForm = () => {
+        jobOrderForm.reset();
+        document.querySelector('#add-job-order h2').textContent = 'Input Job Order Baru';
+        document.querySelector('#add-job-order button[type="submit"]').textContent = 'Simpan Job Order';
+        state.editingJobId = null; 
+        
+        jobOrderNoInput.value = "[Otomatis]";
+        document.getElementById('container-details-wrapper').innerHTML = '';
+        document.getElementById('invoice-items-wrapper').innerHTML = '';
+        document.getElementById('add-container-btn').click();
+        document.getElementById('add-invoice-item-btn').click();
+        populateBankSelection();
+        calculateInvoiceTotal();
+    };
+    
+    const startEditJob = (jobId) => {
+        const jobToEdit = state.jobs.find(j => j.id === jobId);
+        if (!jobToEdit) return;
+
+        state.editingJobId = jobId;
+        navigateTo('add-job-order'); 
+
+        setTimeout(() => {
+            jobOrderForm.reset();
+            
+            document.getElementById('job-order-no').value = jobToEdit.id;
+            document.getElementById('customer-name').value = jobToEdit.customerName;
+            document.getElementById('shipment-type').value = jobToEdit.shipmentType || '';
+            document.getElementById('vessel-voyage').value = jobToEdit.vesselVoyage || '';
+            document.getElementById('pol').value = jobToEdit.pol || '';
+            document.getElementById('pod').value = jobToEdit.pod || '';
+            
+            populateBankSelection();
+            document.getElementById('bank-selection').value = jobToEdit.selectedBankId || 'all';
+
+            const containerWrapper = document.getElementById('container-details-wrapper');
+            containerWrapper.innerHTML = '';
+            jobToEdit.containers.forEach(c => {
+                const row = createContainerRow();
+                row.querySelector('.container-number').value = c.number;
+                row.querySelector('.container-seal').value = c.seal || '';
+                row.querySelector('.container-type').value = c.type || '';
+                row.querySelector('.container-driver').value = c.driverName || '';
+                containerWrapper.appendChild(row);
+            });
+
+            const invoiceWrapper = document.getElementById('invoice-items-wrapper');
+            invoiceWrapper.innerHTML = '';
+            jobToEdit.invoice.items.forEach(item => {
+                const row = createInvoiceItemRow();
+                row.querySelector('.invoice-desc').value = item.description;
+                row.querySelector('.invoice-qty').value = item.qty;
+                row.querySelector('.invoice-price').value = item.price;
+                row.querySelector('.invoice-ppn-status').value = item.ppnStatus || 'kena_ppn';
+                invoiceWrapper.appendChild(row);
+            });
+
+            calculateInvoiceTotal();
+
+            document.querySelector('#add-job-order h2').textContent = `Edit Job Order: ${jobId}`;
+            document.querySelector('#add-job-order button[type="submit"]').textContent = 'Update Job Order';
+        }, 0);
+    };
+
+    jobOrderForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const containers = Array.from(document.querySelectorAll('#container-details-wrapper > div')).map(row => ({
+            number: row.querySelector('.container-number').value,
+            seal: row.querySelector('.container-seal').value,
+            type: row.querySelector('.container-type').value,
+            driverName: row.querySelector('.container-driver').value
+        }));
+        
+        const invoiceItems = Array.from(document.querySelectorAll('#invoice-items-wrapper > div')).map(row => {
+            const qty = parseFloat(row.querySelector('.invoice-qty').value);
+            const price = parseFloat(row.querySelector('.invoice-price').value);
+            return { description: row.querySelector('.invoice-desc').value, qty, price, total: qty * price, ppnStatus: row.querySelector('.invoice-ppn-status').value };
+        });
+
+        const dpp = invoiceItems.filter(item => item.ppnStatus === 'kena_ppn').reduce((sum, item) => sum + item.total, 0);
+        const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+        const ppn = Math.floor(dpp * 0.11);
+        const grandTotal = subtotal + ppn;
+        
+        if (state.editingJobId) {
+            const job = state.jobs.find(j => j.id === state.editingJobId);
+            if (job) {
+                job.customerName = document.getElementById('customer-name').value;
+                job.shipmentType = document.getElementById('shipment-type').value;
+                job.vesselVoyage = document.getElementById('vessel-voyage').value;
+                job.pol = document.getElementById('pol').value;
+                job.pod = document.getElementById('pod').value;
+                job.selectedBankId = document.getElementById('bank-selection').value;
+                job.containers = containers;
+                job.invoice.items = invoiceItems;
+                job.invoice.subtotal = subtotal;
+                job.invoice.dpp = dpp;
+                job.invoice.ppn = ppn;
+                job.invoice.total = grandTotal;
+            }
+            showToast('Job Order berhasil diperbarui!');
+        } else {
+            const isPPNJob = invoiceItems.some(item => item.ppnStatus === 'kena_ppn' || item.ppnStatus === 'ppn_dibebaskan');
+            const newJobId = generateJobOrderID(isPPNJob ? 'ppn' : 'np');
+
+            const newJob = {
+                id: newJobId,
+                customerName: document.getElementById('customer-name').value,
+                shipmentType: document.getElementById('shipment-type').value,
+                vesselVoyage: document.getElementById('vessel-voyage').value,
+                pol: document.getElementById('pol').value,
+                pod: document.getElementById('pod').value,
+                selectedBankId: document.getElementById('bank-selection').value,
+                createdAt: new Date().toISOString(),
+                containers: containers,
+                invoice: { items: invoiceItems, subtotal, dpp, ppn, total: grandTotal, status: 'unpaid' },
+                operationalCosts: []
+            };
+            state.jobs.push(newJob);
+            showToast('Job Order berhasil disimpan!');
+        }
+
+        saveData();
+        state.editingJobId = null;
+        navigateTo('job-order-list');
+    });
+
+    // NAVIGATION
+    const navigateTo = (pageId) => {
+        state.activePage = pageId;
+        render();
+    };
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(link.dataset.page);
+        });
+    });
+
+    // EVENT DELEGATION FOR DYNAMIC BUTTONS
+    document.body.addEventListener('click', (e) => {
+        if (e.target.closest('.view-details-btn')) {
+            const jobId = e.target.closest('.view-details-btn').dataset.id;
+            openDetailsModal(jobId);
+        }
+        if (e.target.closest('.edit-job-btn')) {
+            const jobId = e.target.closest('.edit-job-btn').dataset.id;
+            startEditJob(jobId);
+        }
+        if (e.target.closest('.delete-job-btn')) {
+            const jobId = e.target.closest('.delete-job-btn').dataset.id;
+            if (confirm(`Apakah Anda yakin ingin menghapus Job Order ${jobId}?`)) {
+                state.jobs = state.jobs.filter(job => job.id !== jobId);
+                saveData();
+                showToast(`Job Order ${jobId} telah dihapus.`);
+                render();
+            }
+        }
+        if (e.target.closest('.page-delete-cost-btn')) {
+            const btn = e.target.closest('.page-delete-cost-btn');
+            const jobId = btn.dataset.jobId;
+            const costIndex = parseInt(btn.dataset.costIndex);
+            
+            const job = state.jobs.find(j => j.id === jobId);
+            if(job) {
+                job.operationalCosts.splice(costIndex, 1);
+                saveData();
+                showToast('Biaya berhasil dihapus.');
+                displayCostsForJob(jobId);
+            }
+        }
+         if (e.target.closest('.delete-bank-btn')) {
+            const bankIndex = parseInt(e.target.closest('.delete-bank-btn').dataset.index);
+            if (confirm('Apakah Anda yakin ingin menghapus referensi bank ini?')) {
+                state.banks.splice(bankIndex, 1);
+                saveData();
+                renderPengaturanPage();
+                showToast('Referensi bank telah dihapus.');
+            }
+        }
+    });
+
+    // MODAL LOGIC
+    const openDetailsModal = (jobId) => {
+        const job = state.jobs.find(j => j.id === jobId);
+        if (!job) return;
+
+        const costsTotal = job.operationalCosts.reduce((sum, cost) => sum + cost.amount, 0);
+        const profit = job.invoice.total - costsTotal;
+
+        modalContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Job Info -->
+                <div class="space-y-4">
+                    <h4 class="text-xl font-bold border-b pb-2">Informasi Job Order</h4>
+                    <p><strong>No. Job:</strong> ${job.id}</p>
+                    <p><strong>Pelanggan:</strong> ${job.customerName}</p>
+                    <p><strong>Kapal/Voyage:</strong> ${job.vesselVoyage || 'N/A'}</p>
+                    <p><strong>Rute:</strong> ${job.pol || 'N/A'} - ${job.pod || 'N/A'}</p>
+                    <h4 class="text-xl font-bold border-b pb-2 mt-4">Kontainer & Sopir</h4>
+                    <div class="text-sm space-y-2">
+                        ${job.containers.map(c => `
+                            <div class="p-2 bg-slate-50 rounded">
+                                <p><strong>Kontainer:</strong> ${c.number} (${c.type || 'N/A'})</p>
+                                <p><strong>Seal:</strong> ${c.seal || 'N/A'}</p>
+                                <p><strong>Sopir:</strong> ${c.driverName || 'N/A'}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Invoice Info -->
+                <div>
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xl font-bold border-b pb-2">Detail Invoice</h4>
+                        <button id="print-invoice-btn" class="bg-slate-600 text-white px-3 py-1 rounded-md text-sm hover:bg-slate-700" data-id="${job.id}">
+                            <i class="fas fa-print mr-2"></i>Cetak
+                        </button>
+                    </div>
+                    <table class="w-full mt-2 text-sm">
+                        <thead class="bg-slate-50"><tr><th class="p-2 text-left">Deskripsi</th><th class="p-2 text-right">Jumlah</th></tr></thead>
+                        <tbody>
+                        ${job.invoice.items.map(item => `
+                            <tr class="border-b">
+                                <td class="p-2">${item.description} ${item.ppnStatus !== 'kena_ppn' ? `<div class="text-xs text-slate-500">(${getPPNStatusText(item.ppnStatus)})</div>` : ''}</td>
+                                <td class="p-2 text-right">${formatCurrency(item.total)}</td>
+                            </tr>
+                        `).join('')}
+                        </tbody>
+                        <tfoot class="font-semibold">
+                            <tr class="border-t"><td class="p-2">Subtotal</td><td class="p-2 text-right">${formatCurrency(job.invoice.subtotal)}</td></tr>
+                            <tr><td class="p-2">PPN 11%</td><td class="p-2 text-right">${formatCurrency(job.invoice.ppn)}</td></tr>
+                            <tr class="bg-slate-200 text-base"><td class="p-2">Grand Total</td><td class="p-2 text-right">${formatCurrency(job.invoice.total)}</td></tr>
+                        </tfoot>
+                    </table>
+                    <div class="mt-4">
+                        <strong>Status Pembayaran:</strong>
+                        <span class="ml-2 px-2 py-1 rounded-full text-xs font-semibold ${job.invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${job.invoice.status === 'paid' ? 'Lunas' : 'Belum Lunas'}
+                        </span>
+                        ${job.invoice.status === 'unpaid' ? `<button id="mark-paid-btn" data-id="${job.id}" class="ml-4 bg-green-500 text-white px-3 py-1 rounded-md text-sm hover:bg-green-600">Tandai Lunas</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- Operational Costs -->
+                <div class="md:col-span-2">
+                    <h4 class="text-xl font-bold border-b pb-2">Biaya Operasional</h4>
+                     <table class="w-full mt-2 text-sm">
+                        <thead class="bg-slate-50"><tr><th class="p-2 text-left">Deskripsi</th><th class="p-2 text-right">Jumlah</th><th class="p-2 text-center">Aksi</th></tr></thead>
+                        <tbody id="op-costs-body">
+                        ${job.operationalCosts.map((cost, index) => `
+                            <tr class="border-b"><td class="p-2">${cost.description}</td><td class="p-2 text-right">${formatCurrency(cost.amount)}</td><td class="text-center"><button class="text-red-500 hover:text-red-700 delete-cost-btn" data-job-id="${job.id}" data-cost-index="${index}" title="Hapus Biaya"><i class="fas fa-times-circle"></i></button></td></tr>
+                        `).join('')}
+                        </tbody>
+                        <tfoot class="font-semibold"><tr><td class="p-2">Total Biaya</td><td class="p-2 text-right">${formatCurrency(costsTotal)}</td><td></td></tr></tfoot>
+                    </table>
+                    <form id="add-cost-form" class="mt-4 flex gap-2" data-id="${job.id}">
+                        <input type="text" id="cost-desc" placeholder="Deskripsi Biaya" class="flex-grow p-2 border rounded-md" required>
+                        <input type="number" id="cost-amount" placeholder="Jumlah" class="w-40 p-2 border rounded-md" required>
+                        <button type="submit" class="bg-blue-600 text-white px-4 rounded-md hover:bg-blue-700">Tambah</button>
+                    </form>
+                </div>
+                
+                <!-- Summary -->
+                <div class="md:col-span-2 bg-slate-100 p-4 rounded-lg mt-4 text-center">
+                    <h4 class="text-xl font-bold text-slate-700">Ringkasan Keuangan</h4>
+                    <div class="flex justify-around mt-2">
+                        <div><p class="text-slate-600">Pendapatan</p><p class="font-bold text-lg">${formatCurrency(job.invoice.total)}</p></div>
+                        <div><p class="text-slate-600">Biaya</p><p class="font-bold text-lg">${formatCurrency(costsTotal)}</p></div>
+                        <div><p class="text-slate-600">Laba/Rugi</p><p class="font-bold text-lg ${profit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(profit)}</p></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        detailsModal.classList.remove('hidden');
+        
+        document.getElementById('add-cost-form')?.addEventListener('submit', handleAddCost);
+        document.getElementById('mark-paid-btn')?.addEventListener('click', handleMarkPaid);
+        document.getElementById('print-invoice-btn')?.addEventListener('click', handlePrintInvoice);
+        document.querySelectorAll('.delete-cost-btn').forEach(btn => btn.addEventListener('click', handleDeleteCost));
+    };
+
+    const handleAddCost = (e) => {
+        e.preventDefault();
+        const jobId = e.target.dataset.id;
+        const job = state.jobs.find(j => j.id === jobId);
+        const description = document.getElementById('cost-desc').value;
+        const amount = parseFloat(document.getElementById('cost-amount').value);
+
+        if (job && description && amount > 0) {
+            job.operationalCosts.push({ description, amount });
+            saveData();
+            openDetailsModal(jobId);
+        }
+    };
+    
+    const handleDeleteCost = (e) => {
+        const btn = e.target.closest('.delete-cost-btn');
+        const jobId = btn.dataset.jobId;
+        const costIndex = parseInt(btn.dataset.costIndex);
+        const job = state.jobs.find(j => j.id === jobId);
+
+        if (job) {
+            job.operationalCosts.splice(costIndex, 1);
+            saveData();
+            openDetailsModal(jobId);
+        }
+    };
+
+    const handleMarkPaid = (e) => {
+        const jobId = e.target.dataset.id;
+        const job = state.jobs.find(j => j.id === jobId);
+        if (job) {
+            job.invoice.status = 'paid';
+            saveData();
+            showToast(`Invoice ${jobId} telah ditandai lunas.`);
+            openDetailsModal(jobId);
+            render(); 
+        }
+    };
+
+    closeModalBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
+
+    // PDF GENERATION
+    const handlePrintInvoice = (e) => {
+        const jobId = e.target.dataset.id;
+        const job = state.jobs.find(j => j.id === jobId);
+        if (!job) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(30);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PT PASIR INDAH LOGISTIK', 30, 20);
+       
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+          doc.text('Jl. Gedebage Selatan No. 65 Kota Bandung', 14, 36);
+        doc.text('INVOICE', 14, 30);
+       
+
+        // Invoice Info
+        doc.text(`No: INV/${job.id}`, 125, 30);
+        doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 125, 36);
+        
+        // Customer Info
+        doc.text('Kepada Yth:', 14, 50);
+        doc.text(job.customerName, 14, 56);
+
+        // Shipment Details
+        let startY = 65;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Detail Pengiriman', 14, startY);
+        startY += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text(`Kapal / Voyage: ${job.vesselVoyage || 'N/A'}`, 14, startY);
+        doc.text(`Tujuan (POD): ${job.pod || 'N/A'}`, 100, startY);
+        startY += 5;
+        doc.text('Kontainer:', 14, startY);
+        startY += 5;
+        
+        if (job.containers && job.containers.length > 0) {
+            const containerData = job.containers.map(c => [ c.number || '-', c.type || '-', c.seal || '-' ]);
+            doc.autoTable({
+                startY: startY,
+                head: [['No. Kontainer', 'Jenis', 'Seal']],
+                body: containerData,
+                theme: 'grid',
+                headStyles: { fontSize: 9, fillColor: [230, 230, 230], textColor: 40 },
+                bodyStyles: { fontSize: 9 },
+                margin: { left: 14, right: 14 }
+            });
+            startY = doc.autoTable.previous.finalY + 5;
+        } else {
+            doc.text('- Tidak ada data kontainer -', 18, startY);
+            startY += 5;
+        }
+        
+        // Table Rincian Biaya
+        const tableColumn = ["Deskripsi", "Qty", "Harga Satuan", "Jumlah"];
+        const tableRows = [];
+        job.invoice.items.forEach(item => {
+            const itemDescription = item.ppnStatus !== 'kena_ppn'
+                ? { content: `${item.description}\n(${getPPNStatusText(item.ppnStatus)})`, styles: { cellPadding: { top: 2, bottom: 4 } } }
+                : item.description;
+
+            const itemData = [
+                itemDescription,
+                item.qty,
+                formatCurrency(item.price),
+                { content: formatCurrency(item.total), styles: { halign: 'right' } }
+            ];
+            tableRows.push(itemData);
+        });
+        
+        tableRows.push([
+            { content: 'Subtotal', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+            { content: formatCurrency(job.invoice.subtotal), styles: { halign: 'right', fontStyle: 'bold' } }
+        ]);
+        tableRows.push([
+            { content: 'PPN 11%', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+            { content: formatCurrency(job.invoice.ppn), styles: { halign: 'right', fontStyle: 'bold' } }
+        ]);
+        tableRows.push([
+            { content: 'Grand Total', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 220, 220] } },
+            { content: formatCurrency(job.invoice.total), styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 220, 220] } }
+        ]);
+
+        doc.autoTable({
+            startY: startY,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 128, 185] },
+        });
+        
+        let finalY = doc.autoTable.previous.finalY;
+
+        // Payment Information
+        if(state.banks.length > 0){
+            finalY += 10;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Informasi Pembayaran:', 14, finalY);
+            finalY += 6;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+
+            let banksToDisplay = [];
+            if (job.selectedBankId && job.selectedBankId !== 'all') {
+                const selectedBank = state.banks.find((b, index) => index.toString() === job.selectedBankId);
+                if (selectedBank) {
+                    banksToDisplay.push(selectedBank);
+                }
+            } else {
+                banksToDisplay = state.banks;
+            }
+
+            banksToDisplay.forEach(bank => {
+                doc.text(`${bank.name}: ${bank.number} (a.n. ${bank.holder})`, 14, finalY);
+                finalY += 5;
+            });
+        }
+        
+        doc.save(`Invoice-${job.id}.pdf`);
+    };
+
+    // OPERATIONAL COSTS PAGE LOGIC
+    const displayCostsForJob = (jobId) => {
+        const job = state.jobs.find(j => j.id === jobId);
+        const costsTableBody = document.getElementById('costs-table-body');
+        const displaySection = document.getElementById('costs-display-section');
+        costsTableBody.innerHTML = '';
+
+        if (!job) {
+            displaySection.classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('selected-job-id').textContent = jobId;
+        
+        if (job.operationalCosts.length === 0) {
+            costsTableBody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-slate-500">Belum ada biaya operasional untuk job ini.</td></tr>`;
+        } else {
+            job.operationalCosts.forEach((cost, index) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                row.innerHTML = `
+                    <td class="p-4">${cost.description}</td>
+                    <td class="p-4 text-right">${formatCurrency(cost.amount)}</td>
+                    <td class="p-4 text-center">
+                        <button class="text-red-500 hover:text-red-700 page-delete-cost-btn" data-job-id="${job.id}" data-cost-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                costsTableBody.appendChild(row);
+            });
+        }
+        displaySection.classList.remove('hidden');
+    };
+
+    const handlePrintDriverReport = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const month = parseInt(document.getElementById('report-month').value);
+        const year = parseInt(document.getElementById('report-year').value);
+        const monthName = document.getElementById('report-month').options[month].text;
+
+        const filteredJobs = state.jobs.filter(job => {
+            const jobDate = new Date(job.createdAt);
+            const hasDriver = job.containers.some(c => c.driverName && c.driverName.trim() !== '');
+            return jobDate.getMonth() === month && jobDate.getFullYear() === year && hasDriver;
+        });
+
+        const jobsByDriver = filteredJobs.reduce((acc, job) => {
+            const uniqueDriversInJob = new Set();
+            job.containers.forEach(container => {
+                if (container.driverName && container.driverName.trim() !== '') {
+                    uniqueDriversInJob.add(container.driverName.trim());
+                }
+            });
+
+            uniqueDriversInJob.forEach(driverName => {
+                if (!acc[driverName]) {
+                    acc[driverName] = [];
+                }
+                if (!acc[driverName].some(j => j.id === job.id)) {
+                     acc[driverName].push(job);
+                }
+            });
+
+            return acc;
+        }, {});
+
+        doc.setFontSize(18);
+        doc.text("Laporan Aktivitas Sopir", 14, 22);
+        doc.setFontSize(12);
+        doc.text(`Periode: ${monthName} ${year}`, 14, 29);
+        let startY = 35;
+
+        for (const driverKey in jobsByDriver) {
+            if (startY > 250) {
+                doc.addPage();
+                startY = 20;
+            }
+            const jobs = jobsByDriver[driverKey];
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(driverKey, 14, startY);
+            startY += 2;
+            const tableColumn = ["No. Job", "Tanggal", "Pelanggan", "Tujuan (POD)"];
+            const tableRows = jobs.map(job => [ job.id, new Date(job.createdAt).toLocaleDateString('id-ID'), job.customerName, job.pod ]);
+            tableRows.push([{ content: `Total Job: ${jobs.length}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }]);
+            doc.autoTable({
+                startY: startY,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185] },
+            });
+            startY = doc.autoTable.previous.finalY + 10;
+        }
+        doc.save(`laporan-sopir-${monthName}-${year}.pdf`);
+    };
+
+    // BACKUP & RESTORE
+    const handleBackupData = () => {
+        if (state.jobs.length === 0 && state.banks.length === 0) {
+            alert('Tidak ada data untuk di-backup.');
+            return;
+        }
+        const dataStr = JSON.stringify(state, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `emkl_backup_${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Backup data berhasil diunduh.');
+    };
+
+    const handleRestoreData = () => {
+        const fileInput = document.getElementById('restore-file-input');
+        if (fileInput.files.length === 0) {
+            alert('Silakan pilih file backup terlebih dahulu.');
+            return;
+        }
+
+        if (!confirm('PERINGATAN! Ini akan menimpa semua data yang ada. Apakah Anda yakin ingin melanjutkan?')) {
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const restoredState = JSON.parse(e.target.result);
+                if (restoredState && Array.isArray(restoredState.jobs)) { // Check for new and old format
+                    state.jobs = restoredState.jobs || [];
+                    state.banks = restoredState.banks || [];
+                } else if (Array.isArray(restoredState)) { // Fallback for old format (jobs only)
+                     state.jobs = restoredState;
+                     state.banks = [];
+                }
+                else {
+                    throw new Error('Format file tidak valid.');
+                }
+                saveData();
+                showToast('Data berhasil dipulihkan. Aplikasi akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 1500);
+            } catch (error) {
+                alert(`Gagal memulihkan data: ${error.message}`);
+            }
+        };
+
+        reader.onerror = function() {
+            alert('Gagal membaca file.');
+        };
+
+        reader.readAsText(file);
+    };
+
+    // INITIALIZATION
+    const initializeApp = () => {
+        // Form Buttons
+        document.getElementById('add-container-btn').addEventListener('click', () => {
+            document.getElementById('container-details-wrapper').appendChild(createContainerRow());
+        });
+        document.getElementById('add-invoice-item-btn').addEventListener('click', () => {
+            document.getElementById('invoice-items-wrapper').appendChild(createInvoiceItemRow());
+        });
+
+        // Backup/Restore Listeners
+        document.getElementById('backup-btn').addEventListener('click', handleBackupData);
+        document.getElementById('restore-btn').addEventListener('click', handleRestoreData);
+
+        // Bank Form Listener
+        document.getElementById('bank-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const bank = {
+                name: document.getElementById('bank-name').value,
+                number: document.getElementById('account-number').value,
+                holder: document.getElementById('account-holder').value
+            };
+            state.banks.push(bank);
+            saveData();
+            renderPengaturanPage();
+            e.target.reset();
+            showToast('Referensi bank berhasil ditambahkan.');
+        });
+
+        // Operational Costs Page Listeners
+        document.getElementById('cost-job-select').addEventListener('change', (e) => {
+            displayCostsForJob(e.target.value);
+        });
+        document.getElementById('page-add-cost-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const jobId = document.getElementById('cost-job-select').value;
+            const description = document.getElementById('page-cost-desc').value;
+            const amount = parseFloat(document.getElementById('page-cost-amount').value);
+            const job = state.jobs.find(j => j.id === jobId);
+
+            if (job && description && amount > 0) {
+                job.operationalCosts.push({ description, amount });
+                saveData();
+                showToast('Biaya operasional berhasil ditambahkan.');
+                displayCostsForJob(jobId);
+                e.target.reset();
+            } else {
+                alert('Pastikan Job Order dipilih dan semua kolom diisi dengan benar.');
+            }
+        });
+        
+        // Piutang Report Page Listeners
+        document.getElementById('generate-piutang-report-btn').addEventListener('click', () => {
+            const month = parseInt(document.getElementById('piutang-month').value);
+            const year = parseInt(document.getElementById('piutang-year').value);
+            const piutangTableBody = document.getElementById('piutang-table-body');
+            const printBtn = document.getElementById('print-piutang-report-btn');
+            piutangTableBody.innerHTML = '';
+
+            const unpaidJobs = state.jobs.filter(job => {
+                const jobDate = new Date(job.createdAt);
+                return job.invoice.status === 'unpaid' && jobDate.getMonth() === month && jobDate.getFullYear() === year;
+            });
+
+            let totalPiutang = 0;
+
+            if (unpaidJobs.length === 0) {
+                piutangTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-500">Tidak ada piutang untuk periode yang dipilih.</td></tr>`;
+                printBtn.classList.add('hidden');
+            } else {
+                unpaidJobs.forEach(job => {
+                    totalPiutang += job.invoice.total;
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-slate-50';
+                    row.innerHTML = `
+                        <td class="p-4">${job.id}</td>
+                        <td class="p-4">${job.customerName}</td>
+                        <td class="p-4">${new Date(job.createdAt).toLocaleDateString('id-ID')}</td>
+                        <td class="p-4">${formatCurrency(job.invoice.total)}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                Belum Lunas
+                            </span>
+                        </td>
+                    `;
+                    piutangTableBody.appendChild(row);
+                });
+                printBtn.classList.remove('hidden');
+            }
+            document.getElementById('piutang-total').textContent = formatCurrency(totalPiutang);
+        });
+
+        document.getElementById('print-piutang-report-btn').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const month = parseInt(document.getElementById('piutang-month').value);
+            const year = parseInt(document.getElementById('piutang-year').value);
+            const monthName = document.getElementById('piutang-month').options[month].text;
+
+            const unpaidJobs = state.jobs.filter(job => {
+                const jobDate = new Date(job.createdAt);
+                return job.invoice.status === 'unpaid' && jobDate.getMonth() === month && jobDate.getFullYear() === year;
+            });
+            const totalPiutang = unpaidJobs.reduce((sum, job) => sum + job.invoice.total, 0);
+
+            doc.setFontSize(18);
+            doc.text("Laporan Piutang Usaha", 14, 22);
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Periode: ${monthName} ${year}`, 14, 29);
+
+            const tableData = unpaidJobs.map(job => [
+                job.id,
+                job.customerName,
+                new Date(job.createdAt).toLocaleDateString('id-ID'),
+                formatCurrency(job.invoice.total)
+            ]);
+
+            tableData.push([
+                { content: 'TOTAL PIUTANG', colSpan: 3, styles: { fontStyle: 'bold' } },
+                { content: formatCurrency(totalPiutang), styles: { fontStyle: 'bold' } },
+            ]);
+
+            doc.autoTable({
+                startY: 35,
+                head: [['No. Job', 'Pelanggan', 'Tanggal', 'Total Tagihan']],
+                body: tableData,
+                theme: 'grid'
+            });
+
+            doc.save(`laporan-piutang-${monthName}-${year}.pdf`);
+        });
+
+        // Profit Loss Report Page Listeners
+        document.getElementById('generate-profit-loss-report-btn').addEventListener('click', () => {
+            const month = parseInt(document.getElementById('profit-loss-month').value);
+            const year = parseInt(document.getElementById('profit-loss-year').value);
+            const printBtn = document.getElementById('print-profit-loss-report-btn');
+
+            const filteredJobs = state.jobs.filter(job => {
+                const jobDate = new Date(job.createdAt);
+                return jobDate.getMonth() === month && jobDate.getFullYear() === year;
+            });
+            
+            const ppnJobs = filteredJobs.filter(job => !job.invoice.items.every(item => item.ppnStatus === 'bebas_ppn'));
+            const npJobs = filteredJobs.filter(job => job.invoice.items.every(item => item.ppnStatus === 'bebas_ppn'));
+
+            const renderTable = (tbodyId, totalRevenueId, totalCostId, totalProfitId, jobs) => {
+                const tbody = document.getElementById(tbodyId);
+                tbody.innerHTML = '';
+                let totalRevenue = 0, totalCost = 0, totalProfit = 0;
+
+                if (jobs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-500">Tidak ada data untuk kategori ini.</td></tr>`;
+                } else {
+                    jobs.forEach(job => {
+                        const revenue = job.invoice.total;
+                        const cost = job.operationalCosts.reduce((sum, c) => sum + c.amount, 0);
+                        const profit = revenue - cost;
+                        
+                        totalRevenue += revenue;
+                        totalCost += cost;
+                        totalProfit += profit;
+
+                        const row = document.createElement('tr');
+                        row.className = 'border-b';
+                        row.innerHTML = `
+                            <td class="p-4">${job.id}</td>
+                            <td class="p-4">${job.customerName}</td>
+                            <td class="p-4">${formatCurrency(revenue)}</td>
+                            <td class="p-4">${formatCurrency(cost)}</td>
+                            <td class="p-4 ${profit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(profit)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+                document.getElementById(totalRevenueId).textContent = formatCurrency(totalRevenue);
+                document.getElementById(totalCostId).textContent = formatCurrency(totalCost);
+                document.getElementById(totalProfitId).textContent = formatCurrency(totalProfit);
+            };
+
+            renderTable('report-table-body-ppn', 'report-total-revenue-ppn', 'report-total-cost-ppn', 'report-total-profit-ppn', ppnJobs);
+            renderTable('report-table-body-np', 'report-total-revenue-np', 'report-total-cost-np', 'report-total-profit-np', npJobs);
+
+            if(filteredJobs.length > 0) {
+                printBtn.classList.remove('hidden');
+            } else {
+                printBtn.classList.add('hidden');
+            }
+        });
+        
+        document.getElementById('print-profit-loss-report-btn').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const month = parseInt(document.getElementById('profit-loss-month').value);
+            const year = parseInt(document.getElementById('profit-loss-year').value);
+            const monthName = document.getElementById('profit-loss-month').options[month].text;
+
+            const filteredJobs = state.jobs.filter(job => {
+                const jobDate = new Date(job.createdAt);
+                return jobDate.getMonth() === month && jobDate.getFullYear() === year;
+            });
+            const ppnJobs = filteredJobs.filter(job => !job.invoice.items.every(item => item.ppnStatus === 'bebas_ppn'));
+            const npJobs = filteredJobs.filter(job => job.invoice.items.every(item => item.ppnStatus === 'bebas_ppn'));
+            
+            doc.setFontSize(18);
+            doc.text("Laporan Laba/Rugi", 14, 22);
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Periode: ${monthName} ${year}`, 14, 29);
+
+            let startY = 35;
+
+            const createTable = (title, jobs) => {
+                if (jobs.length === 0) return;
+                
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(title, 14, startY);
+                startY += 6;
+
+                const tableData = jobs.map(job => {
+                    const revenue = job.invoice.total;
+                    const cost = job.operationalCosts.reduce((sum, c) => sum + c.amount, 0);
+                    const profit = revenue - cost;
+                    return [job.id, job.customerName, formatCurrency(revenue), formatCurrency(cost), formatCurrency(profit)];
+                });
+                
+                const totalRevenue = jobs.reduce((sum, job) => sum + job.invoice.total, 0);
+                const totalCost = jobs.reduce((sum, job) => sum + job.operationalCosts.reduce((s, c) => s + c.amount, 0), 0);
+                
+                tableData.push([
+                    { content: 'TOTAL', colSpan: 2, styles: { fontStyle: 'bold' } },
+                    { content: formatCurrency(totalRevenue), styles: { fontStyle: 'bold' } },
+                    { content: formatCurrency(totalCost), styles: { fontStyle: 'bold' } },
+                    { content: formatCurrency(totalRevenue - totalCost), styles: { fontStyle: 'bold' } },
+                ]);
+
+                doc.autoTable({
+                    startY: startY,
+                    head: [['No. Job', 'Pelanggan', 'Pendapatan', 'Biaya', 'Laba/Rugi']],
+                    body: tableData,
+                    theme: 'grid'
+                });
+                startY = doc.autoTable.previous.finalY + 10;
+            };
+
+            createTable("Laporan Laba/Rugi (Dengan PPN)", ppnJobs);
+            createTable("Laporan Laba/Rugi (Bebas PPN)", npJobs);
+
+            doc.save(`laporan-laba-rugi-${monthName}-${year}.pdf`);
+        });
+
+        // Driver Report Page Listeners
+        document.getElementById('generate-driver-report-btn').addEventListener('click', () => {
+            const month = parseInt(document.getElementById('report-month').value);
+            const year = parseInt(document.getElementById('report-year').value);
+            const reportContent = document.getElementById('driver-report-content');
+            const printBtn = document.getElementById('print-driver-report-btn');
+
+            const filteredJobs = state.jobs.filter(job => {
+                const jobDate = new Date(job.createdAt);
+                const hasDriver = job.containers.some(c => c.driverName && c.driverName.trim() !== '');
+                return jobDate.getMonth() === month && jobDate.getFullYear() === year && hasDriver;
+            });
+
+            if (filteredJobs.length === 0) {
+                reportContent.innerHTML = '<p class="text-center text-slate-500">Tidak ada data aktivitas sopir untuk periode yang dipilih.</p>';
+                printBtn.classList.add('hidden');
+                return;
+            }
+
+            const jobsByDriver = filteredJobs.reduce((acc, job) => {
+                const uniqueDriversInJob = new Set();
+                job.containers.forEach(container => {
+                    if (container.driverName && container.driverName.trim() !== '') {
+                        uniqueDriversInJob.add(container.driverName.trim());
+                    }
+                });
+
+                uniqueDriversInJob.forEach(driverName => {
+                    if (!acc[driverName]) {
+                        acc[driverName] = [];
+                    }
+                    if (!acc[driverName].some(j => j.id === job.id)) {
+                         acc[driverName].push(job);
+                    }
+                });
+
+                return acc;
+            }, {});
+
+            reportContent.innerHTML = '';
+            for (const driverKey in jobsByDriver) {
+                const jobs = jobsByDriver[driverKey];
+                const driverDiv = document.createElement('div');
+                driverDiv.className = 'border p-4 rounded-lg bg-slate-50';
+                
+                let tableHTML = `
+                    <h3 class="text-xl font-semibold mb-3 text-slate-700">${driverKey}</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-200">
+                                <tr>
+                                    <th class="p-3 font-semibold text-slate-600">No. Job</th>
+                                    <th class="p-3 font-semibold text-slate-600">Tanggal</th>
+                                    <th class="p-3 font-semibold text-slate-600">Pelanggan</th>
+                                    <th class="p-3 font-semibold text-slate-600">Tujuan (POD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                jobs.forEach(job => {
+                    tableHTML += `
+                        <tr class="border-b">
+                            <td class="p-3">${job.id}</td>
+                            <td class="p-3">${new Date(job.createdAt).toLocaleDateString('id-ID')}</td>
+                            <td class="p-3">${job.customerName}</td>
+                            <td class="p-3">${job.pod}</td>
+                        </tr>
+                    `;
+                });
+                tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-right font-bold mt-2 text-slate-700">Total Job: ${jobs.length}</p>
+                `;
+                driverDiv.innerHTML = tableHTML;
+                reportContent.appendChild(driverDiv);
+            }
+            printBtn.classList.remove('hidden');
+        });
+
+        document.getElementById('print-driver-report-btn').addEventListener('click', handlePrintDriverReport);
+
+
+        loadData();
+        navigateTo('dashboard');
+    };
+
+    initializeApp();
+});
+</script>
+</body>
+</html>
+
