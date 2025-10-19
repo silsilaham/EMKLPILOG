@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable is not needed for dot-matrix style, but kept for other reports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -104,7 +105,7 @@
             <div id="add-job-order" class="page">
                 <h2 class="text-3xl font-bold mb-6 text-slate-800">Input Job Order Baru</h2>
                 <form id="job-order-form" class="bg-white p-8 rounded-xl shadow-md space-y-8">
-                    <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Informasi Umum</legend><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"><div><label for="job-order-no" class="block font-medium mb-1 text-slate-600">No. Job Order</label><input type="text" id="job-order-no" class="w-full p-2 border rounded-md bg-slate-200" readonly></div><div><label for="customer-name" class="block font-medium mb-1 text-slate-600">Nama Pelanggan</label><input type="text" id="customer-name" class="w-full p-2 border rounded-md" required></div><div><label for="shipment-type" class="block font-medium mb-1 text-slate-600"></label><input type="text" id="shipment-type" class="w-full p-2 border rounded-md" placeholder="Contoh: FCL/LCL"></div><div><label for="vessel-voyage" class="block font-medium mb-1 text-slate-600">Kapal / Voyage</label><input type="text" id="vessel-voyage" class="w-full p-2 border rounded-md"></div><div><label for="pol" class="block font-medium mb-1 text-slate-600">Port of Loading (POL)</label><input type="text" id="pol" class="w-full p-2 border rounded-md"></div><div><label for="pod" class="block font-medium mb-1 text-slate-600">Port of Discharge (POD)</label><input type="text" id="pod" class="w-full p-2 border rounded-md"></div><div class="md:col-span-2"><label for="bank-selection" class="block font-medium mb-1 text-slate-600">Rekening Bank untuk Invoice</label><select id="bank-selection" class="w-full p-2 border rounded-md bg-white"></select></div></div></fieldset>
+                    <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Informasi Umum</legend><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"><div><label for="job-order-no" class="block font-medium mb-1 text-slate-600">No. Job Order</label><input type="text" id="job-order-no" class="w-full p-2 border rounded-md bg-slate-200" readonly></div><div><label for="customer-name" class="block font-medium mb-1 text-slate-600">Nama Pelanggan</label><input type="text" id="customer-name" class="w-full p-2 border rounded-md" required></div><div><label for="shipment-type" class="block font-medium mb-1 text-slate-600">Partai</label><input type="text" id="shipment-type" class="w-full p-2 border rounded-md" placeholder="Contoh: FCL/LCL"></div><div><label for="vessel-voyage" class="block font-medium mb-1 text-slate-600">Kapal / Voyage</label><input type="text" id="vessel-voyage" class="w-full p-2 border rounded-md"></div><div><label for="pol" class="block font-medium mb-1 text-slate-600">Port of Loading (POL)</label><input type="text" id="pol" class="w-full p-2 border rounded-md"></div><div><label for="pod" class="block font-medium mb-1 text-slate-600">Port of Discharge (POD)</label><input type="text" id="pod" class="w-full p-2 border rounded-md"></div><div class="md:col-span-2"><label for="bank-selection" class="block font-medium mb-1 text-slate-600">Rekening Bank untuk Invoice</label><select id="bank-selection" class="w-full p-2 border rounded-md bg-white"></select></div></div></fieldset>
                     <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Detail Kontainer & Sopir</legend><div id="container-details-wrapper" class="space-y-4 mt-4"></div><button type="button" id="add-container-btn" class="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600"><i class="fas fa-plus mr-2"></i>Tambah Kontainer</button></fieldset>
                     <fieldset class="border p-5 rounded-lg"><legend class="text-xl font-semibold px-2 text-slate-700">Rincian Invoice</legend><div id="invoice-items-wrapper" class="space-y-4 mt-4"></div><button type="button" id="add-invoice-item-btn" class="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600"><i class="fas fa-plus mr-2"></i>Tambah Item Invoice</button><div class="text-right mt-6 space-y-2 border-t pt-4"> <div class="text-lg font-semibold text-slate-600">Subtotal: <span id="invoice-subtotal" class="w-40 inline-block">Rp 0</span></div><div class="text-lg font-semibold text-slate-600">PPN 11%: <span id="invoice-ppn" class="w-40 inline-block">Rp 0</span></div><div class="text-2xl font-bold text-slate-800 mt-2">Grand Total: <span id="invoice-grand-total" class="w-40 inline-block">Rp 0</span></div></div></fieldset>
                     <div class="text-right pt-4"><button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 text-lg shadow-md">Simpan Job Order</button></div>
@@ -295,6 +296,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         yearSelect.value = currentYear;
+    };
+
+    const terbilang = (n) => {
+        if (n === null || n === undefined) return '';
+        n = Math.floor(n);
+        if (n === 0) return 'Nol Rupiah';
+
+        const angka = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+
+        function inWords(num) {
+            if (num < 12) {
+                return angka[num];
+            } else if (num < 20) {
+                return angka[num - 10] + ' belas';
+            } else if (num < 100) {
+                return (angka[Math.floor(num / 10)] + ' puluh ' + angka[num % 10]).trim();
+            } else if (num < 200) {
+                return 'seratus ' + inWords(num - 100);
+            } else if (num < 1000) {
+                return (angka[Math.floor(num / 100)] + ' ratus ' + inWords(num % 100)).trim();
+            } else if (num < 2000) {
+                return 'seribu ' + inWords(num - 1000);
+            } else if (num < 1000000) {
+                return (inWords(Math.floor(num / 1000)) + ' ribu ' + inWords(num % 1000)).trim();
+            } else if (num < 1000000000) {
+                return (inWords(Math.floor(num / 1000000)) + ' juta ' + inWords(num % 1000000)).trim();
+            } else if (num < 1000000000000) {
+                return (inWords(Math.floor(num / 1000000000)) + ' miliar ' + inWords(num % 1000000000)).trim();
+            } else {
+                return (inWords(Math.floor(num / 1000000000000)) + ' triliun ' + inWords(num % 1000000000000)).trim();
+            }
+        }
+        
+        let result = inWords(n).replace(/\s+/g, ' ');
+        return result.charAt(0).toUpperCase() + result.slice(1) + ' Rupiah';
     };
 
     // RENDER FUNCTIONS
@@ -806,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('add-cost-form')?.addEventListener('submit', handleAddCost);
         document.getElementById('mark-paid-btn')?.addEventListener('click', handleMarkPaid);
-        document.getElementById('print-invoice-btn')?.addEventListener('click', handlePrintInvoice);
+        document.getElementById('print-invoice-btn')?.addEventListener('click', handlePrintDotMatrixInvoice);
         document.querySelectorAll('.delete-cost-btn').forEach(btn => btn.addEventListener('click', handleDeleteCost));
     };
 
@@ -852,131 +888,105 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
 
     // PDF GENERATION
-    const handlePrintInvoice = (e) => {
-        const jobId = e.target.dataset.id;
+    const handlePrintDotMatrixInvoice = (e) => {
+        const jobId = e.currentTarget.dataset.id;
         const job = state.jobs.find(j => j.id === jobId);
         if (!job) return;
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
-        // Header
-        doc.setFontSize(30);
-        doc.setFont('helvetica', 'bold');
-        doc.text('PT PASIR INDAH LOGISTIK', 30, 20);
-       
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'normal');
-          doc.text('Jl. Gedebage Selatan No. 65 Kota Bandung', 14, 36);
-        doc.text('INVOICE', 14, 30);
-       
-
-        // Invoice Info
-        doc.text(`No: INV/${job.id}`, 125, 30);
-        doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 125, 36);
-        
-        // Customer Info
-        doc.text('Kepada Yth:', 14, 50);
-        doc.text(job.customerName, 14, 56);
-
-        // Shipment Details
-        let startY = 65;
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Detail Pengiriman', 14, startY);
-        startY += 6;
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Courier', 'normal');
         doc.setFontSize(10);
-        doc.text(`Kapal / Voyage: ${job.vesselVoyage || 'N/A'}`, 14, startY);
-        doc.text(`Tujuan (POD): ${job.pod || 'N/A'}`, 100, startY);
-        startY += 5;
-        doc.text('Kontainer:', 14, startY);
-        startY += 5;
-        
-        if (job.containers && job.containers.length > 0) {
-            const containerData = job.containers.map(c => [ c.number || '-', c.type || '-', c.seal || '-' ]);
-            doc.autoTable({
-                startY: startY,
-                head: [['No. Kontainer', 'Jenis', 'Seal']],
-                body: containerData,
-                theme: 'grid',
-                headStyles: { fontSize: 9, fillColor: [230, 230, 230], textColor: 40 },
-                bodyStyles: { fontSize: 9 },
-                margin: { left: 14, right: 14 }
-            });
-            startY = doc.autoTable.previous.finalY + 5;
-        } else {
-            doc.text('- Tidak ada data kontainer -', 18, startY);
-            startY += 5;
+
+        let y = 15;
+        const line = (text) => {
+            doc.text(text, 14, y);
+            y += 5; // line height
+        };
+        const centerLine = (text) => {
+             doc.text(text, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+             y += 5;
         }
+        const repeatChar = (char, count) => char.repeat(count);
+
+        doc.setFont('Courier', 'bold'); doc.setFontSize(30);
+        centerLine('PT PASIR INDAH LOGISTIK');doc.setFontSize(12);
+        doc.setFont('Courier', 'normal');
+        y+=2;
+        centerLine(`No. Invoice: INV/${job.id}`);
+        centerLine(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`);
+        y += 5;
+
+        line(`Kepada Yth:`);
+        line(job.customerName);
+        y += 5;
+
+        line('Detail Pengiriman:');
+        line(`- Kapal/Voyage: ${job.vesselVoyage || 'N/A'}`);
+        line(`- Rute        : ${job.pol || 'N/A'} - ${job.pod || 'N/A'}`);
+        y += 5;
+
+        line('Kontainer:');
+        line(repeatChar('-', 70));
+        line('No. Kontainer      | Jenis/Ukuran      | Seal');
+        line(repeatChar('-', 70));
+        job.containers.forEach(c => {
+            const no = (c.number || '-').padEnd(18);
+            const type = (c.type || '-').padEnd(19);
+            const seal = (c.seal || '-');
+            line(`${no}| ${type}| ${seal}`);
+        });
+        line(repeatChar('-', 70));
+        y += 5;
         
-        // Table Rincian Biaya
-        const tableColumn = ["Deskripsi", "Qty", "Harga Satuan", "Jumlah"];
-        const tableRows = [];
+        line('Rincian Biaya:');
+        line(repeatChar('-', 70));
+        line('Deskripsi'.padEnd(30) + 'Qty'.padStart(5) + 'Harga'.padStart(17) + 'Jumlah'.padStart(17));
+        line(repeatChar('-', 70));
         job.invoice.items.forEach(item => {
-            const itemDescription = item.ppnStatus !== 'kena_ppn'
-                ? { content: `${item.description}\n(${getPPNStatusText(item.ppnStatus)})`, styles: { cellPadding: { top: 2, bottom: 4 } } }
-                : item.description;
-
-            const itemData = [
-                itemDescription,
-                item.qty,
-                formatCurrency(item.price),
-                { content: formatCurrency(item.total), styles: { halign: 'right' } }
-            ];
-            tableRows.push(itemData);
+            const desc = item.description.length > 28 ? item.description.substring(0, 28) + '..' : item.description;
+            const ppnText = item.ppnStatus !== 'kena_ppn' ? `(${getPPNStatusText(item.ppnStatus)})` : '';
+            const qty = item.qty.toString().padStart(5);
+            const price = formatCurrency(item.price).padStart(17);
+            const total = formatCurrency(item.total).padStart(17);
+            line(desc.padEnd(30) + qty + price + total);
+            if (ppnText) {
+                line('  ' + ppnText);
+            }
         });
+        line(repeatChar('-', 70));
         
-        tableRows.push([
-            { content: 'Subtotal', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-            { content: formatCurrency(job.invoice.subtotal), styles: { halign: 'right', fontStyle: 'bold' } }
-        ]);
-        tableRows.push([
-            { content: 'PPN 11%', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-            { content: formatCurrency(job.invoice.ppn), styles: { halign: 'right', fontStyle: 'bold' } }
-        ]);
-        tableRows.push([
-            { content: 'Grand Total', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 220, 220] } },
-            { content: formatCurrency(job.invoice.total), styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 220, 220] } }
-        ]);
+        line('Subtotal'.padStart(53) + formatCurrency(job.invoice.subtotal).padStart(17));
+        line('PPN 11%'.padStart(53) + formatCurrency(job.invoice.ppn).padStart(17));
+        line(repeatChar('-', 70));
+        doc.setFont('Courier', 'bold');
+        line('Grand Total'.padStart(53) + formatCurrency(job.invoice.total).padStart(17));
+        doc.setFont('Courier', 'normal');
+        line(repeatChar('=', 70));
+        y += 5;
 
-        doc.autoTable({
-            startY: startY,
-            head: [tableColumn],
-            body: tableRows,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] },
-        });
+        line('Terbilang:');
+        const terbilangText = `# ${terbilang(job.invoice.total)} #`;
+        doc.setFont('Courier', 'bolditalic');
+        line(terbilangText);
+        doc.setFont('Courier', 'normal');
+        y += 5;
         
-        let finalY = doc.autoTable.previous.finalY;
-
-        // Payment Information
-        if(state.banks.length > 0){
-            finalY += 10;
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Informasi Pembayaran:', 14, finalY);
-            finalY += 6;
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-
+        if (state.banks.length > 0) {
+            line('Informasi Pembayaran:');
             let banksToDisplay = [];
             if (job.selectedBankId && job.selectedBankId !== 'all') {
                 const selectedBank = state.banks.find((b, index) => index.toString() === job.selectedBankId);
-                if (selectedBank) {
-                    banksToDisplay.push(selectedBank);
-                }
+                if (selectedBank) banksToDisplay.push(selectedBank);
             } else {
                 banksToDisplay = state.banks;
             }
-
             banksToDisplay.forEach(bank => {
-                doc.text(`${bank.name}: ${bank.number} (a.n. ${bank.holder})`, 14, finalY);
-                finalY += 5;
+                line(`- ${bank.name}: ${bank.number} (a.n. ${bank.holder})`);
             });
         }
         
-        doc.save(`Invoice-${job.id}.pdf`);
+        doc.save(`Invoice-DotMatrix-${job.id}.pdf`);
     };
 
     // OPERATIONAL COSTS PAGE LOGIC
